@@ -31,9 +31,10 @@
         }
 
         .container {
-            max-width: 1600px;
+            max-width: 100% !important;
+            padding: 2rem 3rem;
             margin: 0 auto;
-            padding: 2rem;
+
         }
 
         /* Editor Section */
@@ -104,9 +105,12 @@
             position: absolute;
             top: 0.5rem;
             right: 0.5rem;
-            background: var(--accent);
+            background: linear-gradient(145deg,
+                    rgba(66, 66, 74, 0.8) 0%,
+                    rgba(13, 17, 22, 0.9) 100%) !important;
             color: white;
-            border: none;
+            border: 1px solid rgba(66, 190, 255, 0.2);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
             padding: 0.5rem 1rem;
             border-radius: 4px;
             cursor: pointer;
@@ -243,13 +247,11 @@
         }
 
         .modal-content {
-            background: var(--secondary);
-            padding: 2rem;
-            border-radius: 8px;
-            max-width: 80%;
-            max-height: 90vh;
-            overflow: auto;
-            position: relative;
+            background: linear-gradient(145deg,
+                    rgba(66, 66, 74, 0.8) 0%,
+                    rgba(13, 17, 22, 0.9) 100%) !important;
+            border: 1px solid rgba(66, 190, 255, 0.2);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
         }
 
         .modal-close {
@@ -291,10 +293,15 @@
         }
 
         .editor-container {
-            background: var(--secondary);
+            background: linear-gradient(145deg,
+                    rgba(66, 66, 74, 0.6) 0%,
+                    rgba(13, 17, 22, 0.8) 100%) !important;
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(66, 190, 255, 0.15);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
             border-radius: 8px;
             overflow: hidden;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+
         }
 
         .editor-header {
@@ -370,9 +377,10 @@
             position: absolute;
             top: 0.5rem;
             left: 0.5rem;
-            background: #ff4444;
+            backdrop-filter: blur(4px);
+            background: rgba(255, 68, 68, 0.2) !important;
             color: white;
-            border: none;
+            border: 1px solid rgba(255, 68, 68, 0.3) !important;
             padding: 0.5rem 1rem;
             border-radius: 4px;
             cursor: pointer;
@@ -382,6 +390,9 @@
 
         .snippet-card:hover .delete-btn {
             opacity: 1;
+            transform: perspective(1000px) translateZ(20px) translateY(-8px);
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
         }
 
         .modal-delete-btn {
@@ -453,7 +464,14 @@
         }
 
         .snippet-card {
-            background: rgba(66, 66, 74, 0.3) !important;
+            background: linear-gradient(145deg,
+                    rgba(66, 66, 74, 0.4) 0%,
+                    rgba(13, 17, 22, 0.6) 100%) !important;
+            border: 1px solid rgba(66, 190, 255, 0.1);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.05);
+            transform: perspective(1000px) translateZ(0);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             border: 1px solid var(--border);
             backdrop-filter: blur(5px);
             padding: 0;
@@ -464,11 +482,16 @@
 
         .gallery-container {
             gap: 2rem;
-            padding: 1.5rem;
-            background: rgba(13, 17, 22, 0.8);
-            backdrop-filter: blur(10px);
-            border-radius: 12px;
-            border: 1px solid rgba(66, 190, 255, 0.1);
+            padding: 2rem;
+            margin: 0 -3rem;
+            background: linear-gradient(145deg,
+                    rgba(13, 17, 22, 0.9) 0%,
+                    rgba(66, 66, 74, 0.4) 100%);
+            backdrop-filter: blur(12px) saturate(180%);
+            border: 1px solid rgba(66, 190, 255, 0.15);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+            border-radius: 0;
+            min-height: 100vh;
             grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr));
         }
 
@@ -604,6 +627,7 @@
             document.getElementById('snippetTitle').value = '';
         }
 
+
         function renderGallery() {
             const gallery = document.getElementById('gallery');
             gallery.innerHTML = snippets.map((snippet, index) => `
@@ -616,10 +640,15 @@
                         </div>
                         <span class="terminal-title">${snippet.title}</span>
                     </div>
-                    <!-- rest of the card remains same -->
+                    <pre class="language-${snippet.language}" onclick="openModal(${index})">
+                        <code>${Prism.highlight(snippet.code, Prism.languages[snippet.language], snippet.language)}</code>
+                    </pre>
+                    <button class="delete-btn" onclick="deleteSnippet(${index})">Delete</button>
+                    <button class="copy-btn" onclick="copyToClipboard(${index})">Copy</button>
                 </div>
             `).join('');
         }
+
 
 
         function showGallery() {
