@@ -5,11 +5,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Code Snippet Gallery</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap"
+        rel="stylesheet">
     <link href="https://unpkg.com/prism-themes@1.9.0/themes/prism-vsc-dark-plus.css" rel="stylesheet">
     <link href="./assets/css/styles.css" rel="stylesheet">
 </head>
 
 <body>
+    <!-- snippet.html - přidat tlačítka do sidebaru -->
     <div class="sidebar">
         <button class="nav-button active" onclick="showEditor()">
             <span>New Snippet</span>
@@ -17,6 +21,13 @@
         <button class="nav-button" onclick="showGallery()">
             <span>Gallery</span>
         </button>
+        <button class="nav-button" onclick="exportSnippets()">
+            <span>Export</span>
+        </button>
+        <button class="nav-button" onclick="document.getElementById('importInput').click()">
+            <span>Import</span>
+        </button>
+        <input type="file" id="importInput" accept=".json" hidden onchange="importSnippets(event)">
     </div>
 
     <div class="main-content">
@@ -88,6 +99,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-css.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-markup.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
 </body>
 
 </html>
