@@ -2,6 +2,11 @@ let snippets = JSON.parse(localStorage.getItem('snippets') || '[]');
 let currentModalIndex = -1;
 // Add default snippets if empty
 
+// main.js - přidat tracking kurzoru
+document.addEventListener('mousemove', (e) => {
+	document.documentElement.style.setProperty('--x', `${e.clientX}px`);
+	document.documentElement.style.setProperty('--y', `${e.clientY}px`);
+});
 function openModal(index) {
 	currentModalIndex = index;
 	const snippet = snippets[index];
@@ -50,6 +55,76 @@ function saveSnippet() {
 	document.getElementById('snippetTitle').value = '';
 }
 
+function downloadAsSVG(index) {
+	const snippet = snippets[index];
+	const svgContent = `
+        <svg xmlns="http://www.w3.org/2000/svg" width="800" height="400">
+            <style>
+                .code-container {
+                    font-family: 'Fira Code', monospace;
+                    font-size: 14px;
+                    fill: #d4d4d4;
+                }
+                .background {
+                    fill: #1e1e1e;
+                }
+                .title {
+                    font-size: 16px;
+                    fill: #42beff;
+                    font-weight: bold;
+                }
+            </style>
+            <rect class="background" width="100%" height="100%"/>
+            <text x="20" y="40" class="title">${snippet.title}</text>
+            <foreignObject x="20" y="60" width="760" height="320">
+                <pre xmlns="http://www.w3.org/1999/xhtml" 
+                     style="color: #d4d4d4; font-family: 'Fira Code', monospace; white-space: pre-wrap;">
+${Prism.highlight(snippet.code, Prism.languages[snippet.language], snippet.language)}
+                </pre>
+            </foreignObject>
+        </svg>
+    `;
+
+	const blob = new Blob([svgContent], { type: 'image/svg+xml' });
+	const url = URL.createObjectURL(blob);
+	const a = document.createElement('a');
+	a.href = url;
+	a.download = `${snippet.title.replace(/ /g, '_')}.svg`;
+	document.body.appendChild(a);
+	a.click();
+	document.body.removeChild(a);
+	URL.revokeObjectURL(url);
+}
+
+async function downloadAsPNG(index) {
+	const card = document.querySelectorAll('.snippet-card')[index];
+	const originalStyle = card.style.cssText;
+
+	// Dočasné úpravy pro lepší export
+	card.style.transform = 'none';
+	card.style.width = '800px';
+	card.style.height = 'auto';
+	card.style.maxHeight = 'none';
+
+	try {
+		const canvas = await html2canvas(card, {
+			backgroundColor: '#1e1e1e',
+			scale: 2,
+			logging: true
+		});
+
+		const img = canvas.toDataURL('image/png');
+		const a = document.createElement('a');
+		a.href = img;
+		a.download = `${snippets[index].title.replace(/ /g, '_')}.png`;
+		a.click();
+	} catch (error) {
+		alert('Chyba při generování PNG: ' + error.message);
+	} finally {
+		card.style.cssText = originalStyle;
+	}
+}
+
 function renderGallery() {
 	const gallery = document.getElementById('gallery');
 	gallery.innerHTML = snippets
@@ -72,13 +147,16 @@ function renderGallery() {
 				)}</code>
             </pre>
             <button class="delete-btn" onclick="deleteSnippet(${index})">Delete</button>
+            <div class="download-buttons">
+                <button class="download-btn svg-btn" onclick="downloadAsSVG(${index})" title="Download SVG">↓ SVG</button>
+                <button class="download-btn png-btn" onclick="downloadAsPNG(${index})" title="Download PNG">↓ PNG</button>
+            </div>
             <button class="copy-btn" onclick="copyToClipboard(${index})">Copy</button>
         </div>
     `
 		)
 		.join('');
 }
-
 function showGallery() {
 	document.getElementById('editorContainer').classList.add('hidden');
 	document.getElementById('gallery').classList.remove('hidden');
@@ -137,6 +215,94 @@ if (snippets.length === 0) {
 		date: new Date().toISOString()
 	});
 	localStorage.setItem('snippets', JSON.stringify(snippets));
+}
+
+// main.js - přidat nové funkce
+
+// Export snippets do JSON souboru
+function exportSnippets() {
+	try {
+		const dataStr = JSON.stringify(snippets, null, 2);
+		const blob = new Blob([dataStr], { type: 'application/json' });
+		const url = URL.createObjectURL(blob);
+		const a = document.createElement('a');
+		a.href = url;
+		a.download = `snippets_backup_${new Date().toISOString().split('T')[0]}.json`;
+		document.body.appendChild(a);
+		a.click();
+		document.body.removeChild(a);
+		URL.revokeObjectURL(url);
+		showToast('Export úspěšně dokončen!');
+	} catch (error) {
+		alert('Chyba při exportu: ' + error.message);
+	}
+}
+
+// Import snippets z JSON souboru
+function importSnippets(event) {
+	const file = event.target.files[0];
+	if (!file) return;
+
+	const reader = new FileReader();
+	reader.onload = function (e) {
+		try {
+			const imported = JSON.parse(e.target.result);
+			if (!Array.isArray(imported)) throw new Error('Neplatný formát souboru');
+
+			// Validace snippetů
+			const validSnippets = imported.filter((s) => {
+				const isValid =
+					s.title &&
+					s.code &&
+					s.language &&
+					s.date &&
+					document.querySelector(`#languageSelect option[value="${s.language}"]`);
+
+				if (!isValid) console.warn('Vynechán neplatný snippet:', s);
+				return isValid;
+			});
+
+			// Sloučení s existujícími snippety
+			const existingHashes = new Set(snippets.map((s) => hashSnippet(s)));
+			const newSnippets = validSnippets.filter((s) => !existingHashes.has(hashSnippet(s)));
+
+			if (newSnippets.length > 0) {
+				snippets = [...snippets, ...newSnippets];
+				localStorage.setItem('snippets', JSON.stringify(snippets));
+				renderGallery();
+				alert(`Naimportováno ${newSnippets.length} nových snippetů!`);
+			} else {
+				alert('Žádné nové snippety k importu.');
+			}
+		} catch (error) {
+			alert('Chyba při importu: ' + error.message);
+		} finally {
+			event.target.value = ''; // Reset file inputu
+		}
+	};
+	reader.readAsText(file);
+}
+
+// Pomocná funkce pro detekci duplicit
+function hashSnippet(snippet) {
+	return `${snippet.title}|${snippet.code}|${snippet.language}|${snippet.date}`;
+}
+
+// Toast notifikace
+function showToast(message, duration = 3000) {
+	const toast = document.createElement('div');
+	toast.textContent = message;
+	toast.style.position = 'fixed';
+	toast.style.bottom = '20px';
+	toast.style.right = '20px';
+	toast.style.background = '#252526';
+	toast.style.color = 'white';
+	toast.style.padding = '1rem';
+	toast.style.borderRadius = '4px';
+	toast.style.zIndex = '1000';
+	document.body.appendChild(toast);
+
+	setTimeout(() => toast.remove(), duration);
 }
 
 // Initial render
